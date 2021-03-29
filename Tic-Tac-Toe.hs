@@ -18,13 +18,14 @@ moveNum n =
     where
       indexRange = range ((0,0), (2,2))
 
-isMoveCorrect :: (Int,Int) -> Bool
-isMoveCorrect n = inRange ((0,0), (2,2)) n
+isMoveCorrect :: (Int,Int) -> Game -> Bool
+isMoveCorrect n g = 
+  inRange ((0,0), (2,2)) n && cellsOfBoard g!n == Nothing
 
 playerTurn :: Game -> (Int, Int) -> Game
 playerTurn game coords =
 -- check if move is correct
-  if (isMoveCorrect coords)
+  if (isMoveCorrect coords game)
     -- update inputted move to board
     then
       -- switch players and return updated game
@@ -41,16 +42,7 @@ playerTurn game coords =
 -- printGame :: Game -> Game
 printGame game =
   print (cellsOfBoard game)
-
-
--- gameDisplay :: Game -> String
--- gameDisplay game = 
---   case gameState game of
---     Running ->
---       display
---     GameOver _ -> display
   
-
 display n = do
   putStrLn (" " ++ "0" ++ " | " ++ "0" ++ " | " ++ "0" ++ " ")
   putStrLn "---+---+---"
@@ -79,8 +71,6 @@ cellContents cell =
     Just PlayerX -> "X"
     Nothing -> " "
     
-
-
 -- create a function that takes in a game and cell coordinates and gives you the cell...
 getCell :: Game -> (Int,Int) -> Cell
 getCell game coords =
@@ -96,46 +86,45 @@ boardDisplay g =
     cellLine2 = ("   " ++  cellContents (getCell g (1,0)) ++ " | " ++  cellContents (getCell g (1,1)) ++ " | " ++  cellContents (getCell g (1,2)) ++ " \n")
     cellLine3 = ("   " ++  cellContents (getCell g (2,0)) ++ " | " ++  cellContents (getCell g (2,1)) ++ " | " ++  cellContents (getCell g (2,2)) ++ " \n")
   
-
-
-
 gameLoop :: Game -> IO ()
-gameLoop g = do
-  -- check if game is over
-  
-
-  -- display initial board
-  boardDisplay g
-  -- get and handle player move
-  putStrLn ("Please enter a move 1-9...")
-  n <- readInt
-  -- if move is valid...
-  if (n <= 9 && isMoveCorrect (moveNum n) && gameState g == Running)
-    then 
-      -- update game
-
-      let updatedGame = playerTurn g (moveNum n) in do
-      putStrLn (show updatedGame)
-      -- boardDisplay updatedGame
-      gameLoop updatedGame
-      
-  else if (gameState g == GameOver (Nothing))
-    then
-      putStrLn ("Game Over! Its a Tie!!!")
-  else if (gameState g == GameOver (Just PlayerX))
-    then
-      putStrLn ("Game Over! X Wins!!!")
-  else if (gameState g == GameOver (Just PlayerX))
-    then
-      putStrLn ("Game Over! O Wins!!!")
+gameLoop game = do
+  -- UPDATE GAMESTATE AND CHECK TO SEE IF GAME IS OVER
+  let gameStep2 = checkGameOver (game)
+  -- if game is still running...
+  if (gameState gameStep2 == Running)
+    then do
+      -- display board
+      boardDisplay gameStep2
+      -- get and handle player move
+      putStrLn ("Please enter a move 1-9...")
+      n <- readInt
+      -- if move is valid...
+      -- AND IF MOVE ALREADY HASENT BEEN MADE
+      if (n <= 9 && isMoveCorrect (moveNum n)(gameStep2) && gameState gameStep2 == Running)
+        then 
+          -- update game
+          let updatedGame = playerTurn (gameStep2) (moveNum n) in do
+          -- boardDisplay updatedGame
+          gameLoop updatedGame
+      else do
+        putStrLn ("--- MOVE -"  ++ show n ++  "- NOT VALID! Please enter a number 1-9 ---")
+        gameLoop gameStep2
+  -- if player X wins...
+  else if (gameState (gameStep2) == GameOver (Just PlayerX))
+    then do
+      boardDisplay gameStep2
+      putStrLn ("----- Game Over! X Wins!!! -----")
+      main
+  -- if player O wins...
+  else if (gameState (gameStep2) == GameOver (Just PlayerO))
+    then do
+      boardDisplay gameStep2
+      putStrLn ("----- Game Over! O Wins!!! -----")
+      main
+   -- if its a tie
   else do
-    putStrLn ("--- MOVE -"  ++ show n ++  "- NOT VALID! Please enter a number 1-9 ---")
-    gameLoop g
-  
-  
-  -- recall gameLoop with updated game
-  -- gameLoop
-
+      putStrLn ("Game Over! Its a Tie!!!")
+      main
 
 main :: IO ()
 main = do
@@ -149,8 +138,3 @@ main = do
     putStrLn ("ah dang alright. gg")
   else do 
     putStrLn "Idk man,"
-      
-
-display1 = do
-  putStrLn ("Game over!")
-
