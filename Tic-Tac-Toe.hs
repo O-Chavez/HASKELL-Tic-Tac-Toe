@@ -3,96 +3,39 @@ import Data.List
 import Data.Array
 import Data.Foldable ( asum )
 
-data Player = PlayerX | PlayerO deriving (Eq, Show)
-type Cell = Maybe Player
-data State = Running | GameOver (Maybe Player) deriving (Eq, Show)
-
--- data GameBoard = GameBoard { boardSize :: Array, }
-
-xCell :: String
-xCell = " "
-oCell :: String
-oCell = " "
-
-type Board = Array (Int, Int) Cell
-
-data Game = Game { gameBoard :: Board
-                ,  gamePlayer :: Player
-                ,  gameState :: State
-                } deriving (Eq, Show)
-
-
-initialGame = Game { gameBoard = array indexRange $ zip (range indexRange) (repeat Nothing)
-                   , gamePlayer = PlayerX
-                   , gameState = Running
-                   }
-    where indexRange = ((0,0), (2,2))
-
-
-
-switchPlayers game =
-  case gamePlayer game of
-    PlayerX -> game { gamePlayer = PlayerO }
-    playerO -> game { gamePlayer = PlayerX }
-
-full :: [Cell] -> Maybe Player
-full (cell@(Just player):cells) | all (== cell) cells = Just player
-full _                                                = Nothing
-
-winner :: Board -> Maybe Player
-winner board = asum $ map full $ rows ++ rows ++ columns ++ diagnals
-  where rows = [[board ! (i,j) | i <- [0..2]] | j <- [0..2]]
-        columns = [[board ! (i,j) | i <- [0..2]] | j <- [0..2]]
-        diagnals = [[board ! (i,j) | i <- [0..2], let j = 2-j ]]
-
-countCells :: Cell -> Board -> Int
-countCells cell = length . filter ((==) cell) . elems
-
-checkGameOver game
-  | Just p <- winner board =
-    game { gameState = GameOver $ Just p }
-  | countCells Nothing board == 0 =
-    game { gameState = GameOver Nothing }
-  | otherwise = game
-  where board = gameBoard game
-
+import Logic
 
 -- moves can be determined by using the inRange predicate on an array from ((0,0), (2,2)) and use the index of each coordinate as a placement variable... (e.g top left move would be (0,0) with an index of 0 and the bottom right would be (2,2) with an index of 8. displays moves as Ints 1-9, so move = n - 1 == coordinate index)
+
+readInt :: IO Int
+readInt = do
+  m <- getLine
+  return (read m :: Int)
+
 moveNum :: Int -> (Int, Int)
 moveNum n = 
   indexRange !! (n - 1)
     where
       indexRange = range ((0,0), (2,2))
 
-isMoveCorrect = inRange ((0,0), (2,2))
+isMoveCorrect :: (Int,Int) -> Bool
+isMoveCorrect n = inRange ((0,0), (2,2)) n
 
 playerTurn :: Game -> (Int, Int) -> Game
 playerTurn game coords =
 -- check if move is correct
   if (isMoveCorrect coords)
     -- update inputted move to board
-    then game { gameBoard = board // [(coords, Just player)]}
+    then
+      -- switch players and return updated game
+      case gamePlayer game of
+        PlayerX -> game { gamePlayer = PlayerO
+                        , gameBoard = board // [(coords, Just player)] }
+        playerO -> game { gamePlayer = PlayerX
+                        , gameBoard = board // [(coords, Just player)] }
     else game
   where board = gameBoard game
         player = gamePlayer game
--- update inputted move to board
-
-testTurn :: Game -> Game
-testTurn game = do
-  putStrLn ("enter something")
-  n <- getLine
-  playerTurn game n
-       
-
--- playerTurn game moveNum
---   | isMoveCorrect moveNum && board ! moveNum == Nothing =
---     checkGameOver
---     $ switchPlayers
---     $ game { gameBoard = board // [(moveNum, Just player)] }
---     -- $ printGame game - this line will cause issues
---   | otherwise = game
---   where board = gameBoard game
---         player = gamePlayer game
 
 
 -- printGame :: Game -> Game
@@ -100,29 +43,12 @@ printGame game =
   print (cellsOfBoard game)
 
 
--- take in move of game
--- takeMove :: Int -> Game -> Game
--- takeMove n game = 
---   putStrLn "Please enter a move (1-9)"
---   do playerTurn n <- n
---   case gameState of
---     Running -> playerTurn game $ n
---     GameOver _ -> initialGame
--- takeMove _ game = game
-
--- gameAsRunning board =
---   putStrLn (" " ++ Cell ++ " | " ++ Cell ++ " | " ++ Cell ++ " ")
---   putStrLn "---+---+---"
---   putStrLn (" " ++ Cell ++ " | " ++ Cell ++ " | " ++ Cell ++ " ")
---   putStrLn "---+---+---"
---   putStrLn (" " ++ Cell ++ " | " ++ Cell ++ " | " ++ Cell ++ " ")
-
 -- gameDisplay :: Game -> String
-gameDisplay game = 
-  case gameState game of
-    Running ->
-      display
-    GameOver _ -> display
+-- gameDisplay game = 
+--   case gameState game of
+--     Running ->
+--       display
+--     GameOver _ -> display
   
 
 display n = do
@@ -144,62 +70,86 @@ cellsOfBoard game =
 -- use  - initialGameCells!(0,0) - to get the contents of the first cell!)
 initialGameCells = gameBoard initialGame
 
-
--- all game cells
-cell1 = initialGameCells!(0,0)
-cell2 = initialGameCells!(0,1)
-cell3 = initialGameCells!(0,2)
-cell4 = initialGameCells!(1,0)
-cell5 = initialGameCells!(1,1)
-cell6 = initialGameCells!(1,2)
-cell7 = initialGameCells!(2,0)
-cell8 = initialGameCells!(2,1)
-cell9 = initialGameCells!(2,2)
-
 indexRange = range ((0,0), (2,2))
 
-getCell :: Cell -> String
-getCell cell =
+cellContents :: Cell -> String
+cellContents cell =
   case cell of
     Just PlayerO -> "O"
     Just PlayerX -> "X"
-    _ -> " "
+    Nothing -> " "
     
 
-boardDisplay =
+
+-- create a function that takes in a game and cell coordinates and gives you the cell...
+getCell :: Game -> (Int,Int) -> Cell
+getCell game coords =
+  cellsOfBoard game!coords
+
+
+boardDisplay :: Game -> IO ()
+boardDisplay g =
   putStr (cellLine1 ++ rowLine ++ cellLine2 ++ rowLine ++ cellLine3)
     where
     rowLine = ("  " ++ ( intercalate "+" $ take 3 $ repeat "---") ++ "   \n")
-    cellLine1 = ("   " ++ getCell cell1 ++ " | " ++ getCell cell2 ++ " | " ++ getCell cell3 ++ " \n")
-    cellLine2 = ("   " ++ getCell cell4 ++ " | " ++ getCell cell5 ++ " | " ++ getCell cell5 ++ " \n")
-    cellLine3 = ("   " ++ getCell cell7 ++ " | " ++ getCell cell8 ++ " | " ++ getCell cell9 ++ " \n")
+    cellLine1 = ("   " ++  cellContents (getCell g (0,0)) ++ " | " ++  cellContents (getCell g (0,1)) ++ " | " ++  cellContents (getCell g (0,2)) ++ " \n")
+    cellLine2 = ("   " ++  cellContents (getCell g (1,0)) ++ " | " ++  cellContents (getCell g (1,1)) ++ " | " ++  cellContents (getCell g (1,2)) ++ " \n")
+    cellLine3 = ("   " ++  cellContents (getCell g (2,0)) ++ " | " ++  cellContents (getCell g (2,1)) ++ " | " ++  cellContents (getCell g (2,2)) ++ " \n")
+  
 
 
--- testDisplayOfBoardWithCells :: Game -> String
-testDisplayOfBoardWithCells = do
-  boardDisplay
-  putStrLn ("whats your move chief?")
-  n <- getLine
-  -- playerTurn initialGame moveNum n
-  -- putStrLn (show cellsOfBoard)
-  putStrLn ("dang... - " ++ n)
 
-lilTest = do
-  putStrLn ("WELCOME TO TIC-TAC-TOE")
-  putStrLn ("shit man, wanna play ticky boy? y/n")
+gameLoop :: Game -> IO ()
+gameLoop g = do
+  -- check if game is over
+  
+
+  -- display initial board
+  boardDisplay g
+  -- get and handle player move
+  putStrLn ("Please enter a move 1-9...")
+  n <- readInt
+  -- if move is valid...
+  if (n <= 9 && isMoveCorrect (moveNum n) && gameState g == Running)
+    then 
+      -- update game
+
+      let updatedGame = playerTurn g (moveNum n) in do
+      putStrLn (show updatedGame)
+      -- boardDisplay updatedGame
+      gameLoop updatedGame
+      
+  else if (gameState g == GameOver (Nothing))
+    then
+      putStrLn ("Game Over! Its a Tie!!!")
+  else if (gameState g == GameOver (Just PlayerX))
+    then
+      putStrLn ("Game Over! X Wins!!!")
+  else if (gameState g == GameOver (Just PlayerX))
+    then
+      putStrLn ("Game Over! O Wins!!!")
+  else do
+    putStrLn ("--- MOVE -"  ++ show n ++  "- NOT VALID! Please enter a number 1-9 ---")
+    gameLoop g
+  
+  
+  -- recall gameLoop with updated game
+  -- gameLoop
+
+
+main :: IO ()
+main = do
+  -- Intro
+  putStrLn ("----------- WELCOME TO TIC-TAC-TOE -----------")
+  putStrLn ("Wanna play ticky boy? y/n")
   input <- getLine
   if input == "y" then
-    testDisplayOfBoardWithCells
+    gameLoop initialGame
   else if input == "n" then
-    putStrLn ("ah damn alright. gg")
+    putStrLn ("ah dang alright. gg")
   else do 
     putStrLn "Idk man,"
       
-  
-  
- 
-
-
 
 display1 = do
   putStrLn ("Game over!")
