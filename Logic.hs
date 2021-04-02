@@ -26,6 +26,24 @@ full :: [Cell] -> Maybe Player
 full (cell@(Just player):cells) | all (== cell) cells = Just player
 full _                                                = Nothing
 
+
+-- cpuMove :: -> Game -> Game
+-- cpuMove game= 
+-- -- check if move is correct
+--   if (isMoveCorrect coords game)
+--     -- update inputted move to board
+--     then
+--       -- switch players and return updated game
+--       case gamePlayer game of
+--         PlayerX -> game { gamePlayer = PlayerO
+--                         , gameBoard = board // [(coords, Just player)] }
+--         playerO -> game { gamePlayer = PlayerX
+--                         , gameBoard = board // [(coords, Just player)] }
+--     else cpuMove
+--   where board = gameBoard game
+--         player = gamePlayer game
+
+
 winningPos :: Board -> Maybe Player
 winningPos board = 
   -- see if a single player has occupied all three spots in any winning postion... (diags, columns, rows...)

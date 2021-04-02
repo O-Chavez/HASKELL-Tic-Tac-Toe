@@ -66,13 +66,11 @@ readInt = do
     Just m -> return (m :: Int)
     Nothing -> return 999
 
-
 moveNum :: Int -> (Int, Int)
 moveNum n = 
   indexRange !! (n - 1)
     where
       indexRange = range ((0,0), (2,2))
-
 
 playerTurn :: Game -> (Int, Int) -> Game
 playerTurn game coords =
@@ -90,8 +88,6 @@ playerTurn game coords =
   where board = gameBoard game
         player = gamePlayer game
 
-
-
 -- use  - initialGameCells!(0,0) - to get the contents of the first cell!)
 initialGameCells = gameBoard initialGame
 
@@ -108,5 +104,3 @@ cellContents cell =
 getCell :: Game -> (Int,Int) -> Cell
 getCell game coords =
   cellsOfBoard game!coords
-
-
