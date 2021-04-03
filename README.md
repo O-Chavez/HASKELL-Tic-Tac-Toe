@@ -7,5 +7,4 @@ To run project:
 In project directory
 $ ./compiled/TicTacToe.exe
 
-
 # HASKELL-Tic-Tac-Toe
